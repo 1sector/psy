@@ -13,7 +13,7 @@ class Test(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return self.title 
+        return self.title
 
 class Question(models.Model):
     test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='questions', verbose_name='Тест')

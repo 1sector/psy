@@ -1,0 +1,16 @@
+[[redirects]]
+  from = "/admin/*"
+  to = "/.netlify/functions/django/admin/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/tests/*"
+  to = "/.netlify/functions/django/tests/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200 
