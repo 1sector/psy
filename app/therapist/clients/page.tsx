@@ -48,14 +48,14 @@ export default function ClientsManagement() {
         .eq('therapist_id', session.user.id)
 
       if (data) {
-        setClients(data.map(record => ({
-          id: record.id,
-          email: record.client.email,
-          name: record.client.name || 'N/A',
-          status: 'Active',
-          last_session: new Date(record.updated_at).toLocaleDateString()
-        })))
-      }
+       setClients(data.map(record => ({
+         id: record.id,
+         email: record.client.map((c: { email: string }) => c.email).join(', '),
+         name: record.client.map((c: { name: string | null }) => c.name || 'N/A').join(', '),
+         status: 'Active',
+         last_session: new Date(record.updated_at).toLocaleDateString(),
+       })))
+  }
     }
 
     fetchClients()
