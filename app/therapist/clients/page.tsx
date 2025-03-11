@@ -50,8 +50,10 @@ export default function ClientsManagement() {
       if (data) {
        setClients(data.map(record => ({
          id: record.id,
-         email: record.client.map((c: { email: string }) => c.email).join(', '),
-         name: record.client.map((c: { name: string | null }) => c.name || 'N/A').join(', '),
+         client: record.client[0],
+         test: record.test[0],
+         email: record.client[0].email,
+         name: record.client[0].name || 'N/A',
          status: 'Active',
          last_session: new Date(record.updated_at).toLocaleDateString(),
        })))
