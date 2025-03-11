@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, FileText } from "lucide-react"
 
-// Интерфейс для вывода на страницу
+// Интерфейс для данных, которые будем отображать в таблице
 interface ClientData {
   id: string
   name: string
@@ -26,14 +26,13 @@ interface ClientData {
   last_session: string
 }
 
-// Интерфейс для ответа Supabase
-interface ClientsTableRow {
+// Интерфейс для ответа Supabase (как выглядит одна строка из таблицы clients)
+interface SupabaseClientsRow {
   id: string
   full_name: string | null
-  user: {
-    email: string | null
-  } | null
   psychologist_id: string
+  // Supabase при связи через user:user_id(...) вернёт массив, даже если связь 1:1
+  user: Array<{ email: string | null }>
 }
 
 export default function ClientsManagement() {
@@ -46,18 +45,17 @@ export default function ClientsManagement() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
-      // Предполагаем, что текущий пользователь — это психолог (therapist),
-      // а в таблице clients есть столбец psychologist_id,
-      // который ссылается на user.id психолога.
+      // Предполагаем, что в таблице clients есть поле psychologist_id,
+      // ссылающееся на user.id для психолога
       const { data, error } = await supabase
         .from('clients')
         .select(`
           id,
           full_name,
+          psychologist_id,
           user:user_id (
             email
-          ),
-          psychologist_id
+          )
         `)
         .eq('psychologist_id', session.user.id)
 
@@ -67,18 +65,23 @@ export default function ClientsManagement() {
       }
 
       if (data) {
-        // Приводим тип для удобства
-        const typedData = data as ClientsTableRow[]
+        // Приводим тип результата к нашему интерфейсу, где user — это массив
+        const typedData = data as SupabaseClientsRow[]
 
-        // Маппим поля в формат, удобный для отображения
+        // Преобразуем к формату, удобному для отображения на странице
         setClients(
-          typedData.map((record) => ({
-            id: record.id,
-            name: record.full_name || 'N/A',
-            email: record.user?.email || 'N/A',
-            status: 'Active',           // При необходимости доработайте логику
-            last_session: 'N/A',       // Если нужно отобразить реальную дату, храните её в таблице или рассчитывайте иначе
-          }))
+          typedData.map((record) => {
+            // Берём первого пользователя из массива (если он есть)
+            const singleUser = record.user?.[0] ?? { email: null }
+
+            return {
+              id: record.id,
+              name: record.full_name || 'N/A',
+              email: singleUser.email || 'N/A',
+              status: 'Active',       // Можно подгружать из другой таблицы, если нужно
+              last_session: 'N/A',   // Аналогично, если нужно хранить реальную дату
+            }
+          })
         )
       }
     }
@@ -87,11 +90,11 @@ export default function ClientsManagement() {
   }, [supabase])
 
   const handleAssignTest = async (clientId: string) => {
-    // Логика назначения теста клиенту
+    // Логика назначения теста
   }
 
   const handleViewNotes = async (clientId: string) => {
-    // Логика просмотра заметок о клиенте
+    // Логика просмотра заметок
   }
 
   return (
