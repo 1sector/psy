@@ -11,83 +11,154 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Plus, FileText } from "lucide-react"
 
-interface TestAssignment {
-  id: string;
-  client: { name: string; email: string };
-  test: { title: string };
-  status: string;
-  assigned_at: string;
-  due_date: string;
+// Интерфейс для удобной типизации полученных данных
+interface ClientData {
+  id: string
+  name: string
+  email: string
+  status: string
+  last_session: string
 }
 
-export default function TestAssignments() {
-  const [assignments, setAssignments] = useState<TestAssignment[]>([])
+export default function ClientsManagement() {
+  const [clients, setClients] = useState<ClientData[]>([])
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
   const supabase = createClientComponentClient()
 
   useEffect(() => {
-    const fetchAssignments = async () => {
+    const fetchClients = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
-      const { data } = await supabase
-        .from('test_assignments')
+      // Вложенный запрос: из client_records -> clients -> users
+      const { data, error } = await supabase
+        .from('client_records')
         .select(`
           id,
           client:client_id (
-            email,
-            name
+            full_name,
+            user:user_id (
+              email
+            )
           ),
-          test:test_id (
-            title
-          ),
-          status,
-          assigned_at,
-          due_date
+          updated_at
         `)
         .eq('therapist_id', session.user.id)
 
+      if (error) {
+        console.error('Error fetching clients:', error)
+        return
+      }
+
       if (data) {
-        setAssignments(
-          data.map((record: any) => ({
+        setClients(
+          data.map(record => ({
             id: record.id,
-            // Извлекаем первого клиента и тест из массивов
-            client: record.client[0],
-            test: record.test[0],
-            status: record.status,
-            assigned_at: record.assigned_at,
-            due_date: record.due_date,
+            // full_name из таблицы clients
+            name: record.client?.full_name || 'N/A',
+            // email из таблицы users
+            email: record.client?.user?.email || 'N/A',
+            status: 'Active',
+            last_session: new Date(record.updated_at).toLocaleDateString(),
           }))
         )
       }
     }
 
-    fetchAssignments()
+    fetchClients()
   }, [supabase])
 
+  const handleAssignTest = async (clientId: string) => {
+    // Реализация назначения теста
+  }
+
+  const handleViewNotes = async (clientId: string) => {
+    // Реализация просмотра заметок
+  }
+
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-4">Test Assignments</h1>
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Clients</h1>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add New Client
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Client</DialogTitle>
+            </DialogHeader>
+            <form className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Client Email</Label>
+                <Input id="email" type="email" placeholder="Enter client email" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Initial Notes</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Enter initial notes about the client"
+                  className="min-h-[100px]"
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDialogOpen(false)}
+                  type="button"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Add Client</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Client Name</TableHead>
-            <TableHead>Client Email</TableHead>
-            <TableHead>Test Title</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Assigned At</TableHead>
-            <TableHead>Due Date</TableHead>
+            <TableHead>Last Session</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {assignments.map(assignment => (
-            <TableRow key={assignment.id}>
-              <TableCell>{assignment.client.name}</TableCell>
-              <TableCell>{assignment.client.email}</TableCell>
-              <TableCell>{assignment.test.title}</TableCell>
-              <TableCell>{assignment.status}</TableCell>
-              <TableCell>{new Date(assignment.assigned_at).toLocaleDateString()}</TableCell>
-              <TableCell>{new Date(assignment.due_date).toLocaleDateString()}</TableCell>
+          {clients.map((client) => (
+            <TableRow key={client.id}>
+              <TableCell>{client.name}</TableCell>
+              <TableCell>{client.email}</TableCell>
+              <TableCell>{client.status}</TableCell>
+              <TableCell>{client.last_session}</TableCell>
+              <TableCell className="text-right space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAssignTest(client.id)}
+                >
+                  <FileText className="h-4 w-4 mr-1" />
+                  Assign Test
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleViewNotes(client.id)}
+                >
+                  View Notes
+                </Button>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
