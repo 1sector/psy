@@ -11,32 +11,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Plus, FileText } from "lucide-react"
 
-interface Client {
-  id: string
-  email: string
-  name: string
-  status: string
-  last_session: string
+interface TestAssignment {
+  id: string;
+  client: { name: string; email: string };
+  test: { title: string };
+  status: string;
+  assigned_at: string;
+  due_date: string;
 }
 
-export default function ClientsManagement() {
-  const [clients, setClients] = useState<Client[]>([])
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
+export default function TestAssignments() {
+  const [assignments, setAssignments] = useState<TestAssignment[]>([])
   const supabase = createClientComponentClient()
 
   useEffect(() => {
-    const fetchClients = async () => {
+    const fetchAssignments = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
       const { data } = await supabase
-        .from('client_records')
+        .from('test_assignments')
         .select(`
           id,
           client:client_id (
@@ -46,112 +41,53 @@ export default function ClientsManagement() {
           test:test_id (
             title
           ),
-          updated_at
+          status,
+          assigned_at,
+          due_date
         `)
         .eq('therapist_id', session.user.id)
 
       if (data) {
-        setClients(data.map(record => ({
-          id: record.id,
-          // Извлекаем первого клиента и тест из массивов
-          client: record.client[0],
-          test: record.test[0],
-          email: record.client[0].email,
-          name: record.client[0].name || 'N/A',
-          status: 'Active',
-          last_session: new Date(record.updated_at).toLocaleDateString(),
-        })))
+        setAssignments(
+          data.map((record: any) => ({
+            id: record.id,
+            // Извлекаем первого клиента и тест из массивов
+            client: record.client[0],
+            test: record.test[0],
+            status: record.status,
+            assigned_at: record.assigned_at,
+            due_date: record.due_date,
+          }))
+        )
       }
     }
 
-    fetchClients()
+    fetchAssignments()
   }, [supabase])
 
-  const handleAssignTest = async (clientId: string) => {
-    // Implementation for assigning test
-  }
-
-  const handleViewNotes = async (clientId: string) => {
-    // Implementation for viewing notes
-  }
-
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Clients</h1>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add New Client
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Client</DialogTitle>
-            </DialogHeader>
-            <form className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Client Email</Label>
-                <Input id="email" type="email" placeholder="Enter client email" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes">Initial Notes</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Enter initial notes about the client"
-                  className="min-h-[100px]"
-                />
-              </div>
-              <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  type="button"
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">Add Client</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
+    <div>
+      <h1 className="text-3xl font-bold mb-4">Test Assignments</h1>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
+            <TableHead>Client Name</TableHead>
+            <TableHead>Client Email</TableHead>
+            <TableHead>Test Title</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Last Session</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead>Assigned At</TableHead>
+            <TableHead>Due Date</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {clients.map((client) => (
-            <TableRow key={client.id}>
-              <TableCell>{client.name}</TableCell>
-              <TableCell>{client.email}</TableCell>
-              <TableCell>{client.status}</TableCell>
-              <TableCell>{client.last_session}</TableCell>
-              <TableCell className="text-right space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleAssignTest(client.id)}
-                >
-                  <FileText className="h-4 w-4 mr-1" />
-                  Assign Test
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleViewNotes(client.id)}
-                >
-                  View Notes
-                </Button>
-              </TableCell>
+          {assignments.map(assignment => (
+            <TableRow key={assignment.id}>
+              <TableCell>{assignment.client.name}</TableCell>
+              <TableCell>{assignment.client.email}</TableCell>
+              <TableCell>{assignment.test.title}</TableCell>
+              <TableCell>{assignment.status}</TableCell>
+              <TableCell>{new Date(assignment.assigned_at).toLocaleDateString()}</TableCell>
+              <TableCell>{new Date(assignment.due_date).toLocaleDateString()}</TableCell>
             </TableRow>
           ))}
         </TableBody>
