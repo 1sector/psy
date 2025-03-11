@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, FileText } from "lucide-react"
 
-// Interface for clients table data
+// Интерфейс для вывода на страницу
 interface ClientData {
   id: string
   name: string
@@ -26,16 +26,14 @@ interface ClientData {
   last_session: string
 }
 
-// Interface for Supabase query response
-interface ClientRecord {
-  id: string;
-  client: {
-    full_name: string;
-    user: {
-      email: string;
-    };
-  };
-  updated_at: string;
+// Интерфейс для ответа Supabase
+interface ClientsTableRow {
+  id: string
+  full_name: string | null
+  user: {
+    email: string | null
+  } | null
+  psychologist_id: string
 }
 
 export default function ClientsManagement() {
@@ -48,19 +46,20 @@ export default function ClientsManagement() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
+      // Предполагаем, что текущий пользователь — это психолог (therapist),
+      // а в таблице clients есть столбец psychologist_id,
+      // который ссылается на user.id психолога.
       const { data, error } = await supabase
-        .from('client_records')
+        .from('clients')
         .select(`
           id,
-          client:client_id (
-            full_name,
-            user:user_id (
-              email
-            )
+          full_name,
+          user:user_id (
+            email
           ),
-          updated_at
+          psychologist_id
         `)
-        .eq('therapist_id', session.user.id)
+        .eq('psychologist_id', session.user.id)
 
       if (error) {
         console.error('Error fetching clients:', error)
@@ -68,14 +67,17 @@ export default function ClientsManagement() {
       }
 
       if (data) {
-        const typedData = data as ClientRecord[];
+        // Приводим тип для удобства
+        const typedData = data as ClientsTableRow[]
+
+        // Маппим поля в формат, удобный для отображения
         setClients(
-          typedData.map(record => ({
+          typedData.map((record) => ({
             id: record.id,
-            name: record.client?.full_name || 'N/A',
-            email: record.client?.user?.email || 'N/A',
-            status: 'Active',
-            last_session: new Date(record.updated_at).toLocaleDateString(),
+            name: record.full_name || 'N/A',
+            email: record.user?.email || 'N/A',
+            status: 'Active',           // При необходимости доработайте логику
+            last_session: 'N/A',       // Если нужно отобразить реальную дату, храните её в таблице или рассчитывайте иначе
           }))
         )
       }
@@ -85,11 +87,11 @@ export default function ClientsManagement() {
   }, [supabase])
 
   const handleAssignTest = async (clientId: string) => {
-    // Implement test assignment logic
+    // Логика назначения теста клиенту
   }
 
   const handleViewNotes = async (clientId: string) => {
-    // Implement notes viewing logic
+    // Логика просмотра заметок о клиенте
   }
 
   return (
