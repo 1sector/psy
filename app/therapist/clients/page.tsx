@@ -43,21 +43,25 @@ export default function ClientsManagement() {
             email,
             name
           ),
+          test:test_id (
+            title
+          ),
           updated_at
         `)
         .eq('therapist_id', session.user.id)
 
       if (data) {
-       setClients(data.map(record => ({
-         id: record.id,
-         client: record.client[0],
-         test: record.test[0],
-         email: record.client[0].email,
-         name: record.client[0].name || 'N/A',
-         status: 'Active',
-         last_session: new Date(record.updated_at).toLocaleDateString(),
-       })))
-  }
+        setClients(data.map(record => ({
+          id: record.id,
+          // Извлекаем первого клиента и тест из массивов
+          client: record.client[0],
+          test: record.test[0],
+          email: record.client[0].email,
+          name: record.client[0].name || 'N/A',
+          status: 'Active',
+          last_session: new Date(record.updated_at).toLocaleDateString(),
+        })))
+      }
     }
 
     fetchClients()
