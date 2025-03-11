@@ -17,13 +17,25 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, FileText } from "lucide-react"
 
-// Интерфейс для удобной типизации полученных данных
+// Interface for clients table data
 interface ClientData {
   id: string
   name: string
   email: string
   status: string
   last_session: string
+}
+
+// Interface for Supabase query response
+interface ClientRecord {
+  id: string;
+  client: {
+    full_name: string;
+    user: {
+      email: string;
+    };
+  };
+  updated_at: string;
 }
 
 export default function ClientsManagement() {
@@ -36,7 +48,6 @@ export default function ClientsManagement() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
-      // Вложенный запрос: из client_records -> clients -> users
       const { data, error } = await supabase
         .from('client_records')
         .select(`
@@ -57,12 +68,11 @@ export default function ClientsManagement() {
       }
 
       if (data) {
+        const typedData = data as ClientRecord[];
         setClients(
-          data.map(record => ({
+          typedData.map(record => ({
             id: record.id,
-            // full_name из таблицы clients
             name: record.client?.full_name || 'N/A',
-            // email из таблицы users
             email: record.client?.user?.email || 'N/A',
             status: 'Active',
             last_session: new Date(record.updated_at).toLocaleDateString(),
@@ -75,11 +85,11 @@ export default function ClientsManagement() {
   }, [supabase])
 
   const handleAssignTest = async (clientId: string) => {
-    // Реализация назначения теста
+    // Implement test assignment logic
   }
 
   const handleViewNotes = async (clientId: string) => {
-    // Реализация просмотра заметок
+    // Implement notes viewing logic
   }
 
   return (
