@@ -25,11 +25,20 @@ interface TestAssignment {
 // Define the interface for the raw Supabase response
 interface SupabaseTestAssignmentRow {
   id: string;
-  client: Array<{ name: string | null; email: string | null }>;
-  test: Array<{ title: string | null }>;
+  client_id: string;
+  test_id: string;
   status: string | null;
   assigned_at: string | null;
   due_date: string | null;
+  clients: {
+    full_name: string | null;
+    users: {
+      email: string | null;
+    } | null;
+  } | null;
+  tests: {
+    title: string | null;
+  } | null;
 }
 
 export default function TestsManagement() {
@@ -39,17 +48,19 @@ export default function TestsManagement() {
   useEffect(() => {
     const fetchAssignments = async () => {
       const { data, error } = await supabase
-        .from('test_assignments') // Replace with your actual table name (e.g., 'test_results')
+        .from('test_results') // Assuming this is your actual table based on the schema
         .select(`
           id,
-          client:client_id (
-            name:full_name, // Adjust field names based on your schema
-            user:user_id (email)
-          ),
-          test:test_id (title),
+          client_id,
+          test_id,
           status,
           assigned_at,
-          due_date
+          due_date,
+          clients!client_id (
+            full_name,
+            users!user_id (email)
+          ),
+          tests!test_id (title)
         `)
 
       if (error) {
@@ -61,18 +72,14 @@ export default function TestsManagement() {
         // Transform the data to match TestAssignment interface
         const typedData = data as SupabaseTestAssignmentRow[]
         const transformedAssignments = typedData.map((record) => {
-          // Extract the first client and test objects, or use fallbacks
-          const clientData = record.client?.[0] || { name: null, email: null }
-          const testData = record.test?.[0] || { title: null }
-
           return {
             id: record.id || '',
             client: {
-              name: clientData.name || 'N/A',
-              email: clientData.email || 'N/A',
+              name: record.clients?.full_name || 'N/A',
+              email: record.clients?.users?.email || 'N/A',
             },
             test: {
-              title: testData.title || 'N/A',
+              title: record.tests?.title || 'N/A',
             },
             status: record.status || 'N/A',
             assigned_at: record.assigned_at || 'N/A',
