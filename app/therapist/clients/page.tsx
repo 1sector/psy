@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-// Define the interface for the expected state
+// Define the interface for the state
 interface TestAssignment {
   id: string;
   client: { name: string; email: string };
@@ -39,11 +39,11 @@ export default function TestsManagement() {
   useEffect(() => {
     const fetchAssignments = async () => {
       const { data, error } = await supabase
-        .from('test_assignments') // Adjust table name as per your schema
+        .from('test_assignments') // Replace with your actual table name (e.g., 'test_results')
         .select(`
           id,
           client:client_id (
-            name,
+            name:full_name, // Adjust field names based on your schema
             user:user_id (email)
           ),
           test:test_id (title),
@@ -61,11 +61,12 @@ export default function TestsManagement() {
         // Transform the data to match TestAssignment interface
         const typedData = data as SupabaseTestAssignmentRow[]
         const transformedAssignments = typedData.map((record) => {
+          // Extract the first client and test objects, or use fallbacks
           const clientData = record.client?.[0] || { name: null, email: null }
           const testData = record.test?.[0] || { title: null }
 
           return {
-            id: record.id,
+            id: record.id || '',
             client: {
               name: clientData.name || 'N/A',
               email: clientData.email || 'N/A',
